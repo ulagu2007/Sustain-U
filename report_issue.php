@@ -225,12 +225,6 @@ if (isAdmin()) {
                             <div id="imagePreview" class="image-preview" style="margin-top: 0.75rem;">No image selected</div>
                         </div>
 
-                        <div style="background: #e8f5ff; padding: 1rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid var(--primary-color);">
-                            <p style="margin: 0; font-size: 0.9rem; color: #0b3a5a;">
-                                <strong>📍 Location Verification:</strong> Geofencing has been removed — submissions are accepted after photo upload and review.
-                            </p>
-                        </div>
-
                         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                             <button type="button" class="btn btn-secondary btn-block" onclick="prevStep(4)">Back</button>
                             <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Submit Report</button>
