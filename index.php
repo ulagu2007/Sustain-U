@@ -1,7 +1,7 @@
 <?php
 /**
- * SUSTAIN-U - Landing Page
- * Features showcase and entry point for users
+ * SUSTAIN-U - Landing Page (Cleaned)
+ * Matches exact UI design from screenshots
  */
 require_once 'config.php';
 ?>
@@ -31,80 +31,72 @@ require_once 'config.php';
         </div>
     </section>
 
-    <!-- Features Section -->
-    <main class="container" style="padding: 3rem 0;">
-        <h2 style="text-align: center; margin-bottom: 3rem;">Why Choose Sustain-U?</h2>
-        
-        <div class="grid grid-3">
-            <div class="card feature">
-                <div class="feature-icon">�</div>
-                <h3>Photo Verified</h3>
-                <p>Attach clear photos—evidence ensures reports are accurate and actionable.</p>
-            </div>
+    <!-- Main Content -->
+    <main class="container" style="padding: 3rem 2rem;">
 
-            <div class="card feature">
-                <div class="feature-icon">🏆</div>
-                <h3>Earn Points</h3>
-                <p>Get rewarded with points for every issue you report. Collect and redeem amazing prizes!</p>
-            </div>
-
-            <div class="card feature">
-                <div class="feature-icon">🤝</div>
-                <h3>Community Driven</h3>
-                <p>Work together with students and administrators to solve campus environmental challenges.</p>
-            </div>
-
-            <div class="card feature">
-                <div class="feature-icon">💚</div>
-                <h3>Environmental Impact</h3>
-                <p>Track your contribution to a greener, more sustainable campus environment.</p>
-            </div>
-
-            <div class="card feature">
-                <div class="feature-icon">📊</div>
-                <h3>Real-time Updates</h3>
-                <p>Get instant notifications on the status of issues you've reported and their resolutions.</p>
-            </div>
-
-            <div class="card feature">
-                <div class="feature-icon">📱</div>
-                <h3>Mobile Friendly</h3>
-                <p>Access Sustain-U from any device. Designed for seamless mobile experience.</p>
-            </div>
+        <!-- Report a New Issue Card -->
+        <div class="card" style="margin-bottom: 2rem; padding: 2.5rem; text-align: center; border-radius: 15px;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📸</div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Report a New Issue</h3>
+            <p style="color: #666; margin-bottom: 1.5rem;">Upload an image and select the category</p>
+            <?php if (isLoggedIn() && !isAdmin()): ?>
+                <a href="/Sustain-U/report_issue.php" class="btn btn-primary">+ Start Reporting</a>
+            <?php elseif (!isLoggedIn()): ?>
+                <a href="/Sustain-U/register.php" class="btn btn-primary">+ Start Reporting</a>
+            <?php endif; ?>
         </div>
 
-
-
-
-    </main>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Sustain-U. Making Campus Greener Together.</p>
-            <p style="margin-top: 1rem; font-size: 0.9rem;">
-                <a href="#about">About</a> • 
-                <a href="#contact">Contact</a> • 
-                <a href="#privacy">Privacy Policy</a>
-            </p>
+        <!-- Track Your Issues Card -->
+        <div class="card" style="margin-bottom: 3rem; padding: 2.5rem; text-align: center; border-radius: 15px;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⏱️</div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Track Your Issues</h3>
+            <p style="color: #666; margin-bottom: 1.5rem;">View status and resolution progress</p>
+            <?php if (isLoggedIn() && !isAdmin()): ?>
+                <a href="/Sustain-U/my_works.php" class="btn btn-primary">View My Issues</a>
+            <?php elseif (!isLoggedIn()): ?>
+                <a href="/Sustain-U/login.php" class="btn btn-primary">View My Issues</a>
+            <?php endif; ?>
         </div>
-    </footer>
-                    <h3>Track Progress</h3>
-                    <p>Monitor the status of your reports from submission to resolution</p>
+
+        <!-- How It Works Section -->
+        <section style="margin-top: 4rem;">
+            <h2 style="text-align: center; margin-bottom: 1rem;">How It Works</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 3rem; font-size: 0.95rem;">Simple 5-step process to report campus issues</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 2rem; margin-top: 2rem;">
+                <div style="text-align: center;">
+                    <div style="width: 70px; height: 70px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white; font-weight: bold;">1</div>
+                    <h4 style="margin-bottom: 0.5rem;">Upload Image</h4>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">Take or upload a photo</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">👥</div>
-                    <h3>Community Impact</h3>
-                    <p>Help make SRM University a greener, cleaner campus</p>
+
+                <div style="text-align: center;">
+                    <div style="width: 70px; height: 70px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white; font-weight: bold;">2</div>
+                    <h4 style="margin-bottom: 0.5rem;">Select Category</h4>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">Air, Water, or Waste</p>
+                </div>
+
+                <div style="text-align: center;">
+                    <div style="width: 70px; height: 70px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white; font-weight: bold;">3</div>
+                    <h4 style="margin-bottom: 0.5rem;">Add Location</h4>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">Building & floor details</p>
+                </div>
+
+                <div style="text-align: center;">
+                    <div style="width: 70px; height: 70px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white; font-weight: bold;">4</div>
+                    <h4 style="margin-bottom: 0.5rem;">Set Urgency</h4>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">Can Wait to Emergency</p>
+                </div>
+
+                <div style="text-align: center;">
+                    <div style="width: 70px; height: 70px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white; font-weight: bold;">5</div>
+                    <h4 style="margin-bottom: 0.5rem;">Submit</h4>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">Earn points!</p>
                 </div>
             </div>
         </section>
 
-        <footer class="footer">
-            <p>&copy; 2026 Sustain-U. Making a difference together.</p>
-        </footer>
-    </div>
+    </main>
 
-    <script src="js/main.js"></script>
 </body>
-</html> 
+</html>
