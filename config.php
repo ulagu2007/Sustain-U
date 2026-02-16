@@ -67,7 +67,24 @@ ini_set('error_log', __DIR__ . '/logs/error.log');
 // SESSION CONFIGURATION
 // ============================================
 if (session_status() === PHP_SESSION_NONE) {
+    // Explicit cookie params to improve session reliability across pages/browsers
+    session_set_cookie_params([
+        'lifetime' => SESSION_TIMEOUT,
+        'path' => '/',
+        'secure' => false,      // set to true when serving over HTTPS
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+
     session_start();
+
+    // Basic session timeout enforcement: destroy if expired (helps avoid stale session state)
+    if (isset($_SESSION['login_time']) && (time() - $_SESSION['login_time']) > SESSION_TIMEOUT) {
+        $_SESSION = [];
+        session_unset();
+        session_destroy();
+        session_start();
+    }
 }
 
 // ============================================

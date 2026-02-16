@@ -53,6 +53,8 @@ if (isAdmin()) {
                 <p style="text-align: center; font-size: 0.9rem; color: #666;">
                     <strong>Student?</strong> <a href="/Sustain-U/login.php">Login as Student</a>
                 </p>
+
+                <p style="text-align:center; font-size:0.85rem; color:#999; margin-top:0.75rem;">Note: If you are redirected back to this page after successful login, please ensure cookies are enabled in your browser and that the server is served over the same origin (no cross-site requests).</p>
             </div>
         </div>
     </main>
@@ -98,6 +100,7 @@ if (isAdmin()) {
                         headers: {
                             'Content-Type': 'application/json',
                         },
+                        credentials: 'same-origin',
                         body: JSON.stringify({
                             email: email,
                             password: password,
@@ -108,7 +111,8 @@ if (isAdmin()) {
                     const data = await response.json();
 
                     if (data.success) {
-                        window.location.href = '/Sustain-U/admin_dashboard.php';
+                        // Respect server-provided redirect when available (keeps client/server behavior consistent)
+                        window.location.href = data.redirect || '/Sustain-U/admin_dashboard.php';
                     } else {
                         errorMessage.textContent = data.message || 'Login failed. Invalid credentials.';
                         errorMessage.classList.remove('hidden');

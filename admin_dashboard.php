@@ -19,7 +19,10 @@ requireAdmin();
     <div class="container">
         <div class="navbar">
             <div class="navbar-content">
-                <h1 class="logo">🌿 Sustain-U Admin</h1>
+                <a href="/Sustain-U/admin_dashboard.php" class="brand" style="display:flex;align-items:center;gap:0.5rem;text-decoration:none;color:inherit;">
+                    <img src="/Sustain-U/assets/logo.jpeg" alt="Sustain-U" style="height:36px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                    <span style="font-weight:700;font-size:1.1rem;">Sustain-U Admin</span>
+                </a>
                 <div class="nav-links">
                     <span class="user-info">👤 <?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
                     <a href="logout.php" class="nav-link">Logout</a>
@@ -36,6 +39,22 @@ requireAdmin();
             </aside>
 
             <main class="dashboard-main">
+                <!-- Dynamic admin summary -->
+                <div style="display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+                    <div class="card" style="flex:1; min-width:160px; text-align:center; padding:1rem;">
+                        <div style="font-size:1.25rem; color:var(--primary-color);">Total Issues</div>
+                        <div id="totalIssuesCount" style="font-size:1.75rem; font-weight:700; margin-top:0.5rem;">0</div>
+                    </div>
+                    <div class="card" style="flex:1; min-width:160px; text-align:center; padding:1rem;">
+                        <div style="font-size:1.25rem; color:#FFA500;">In Progress</div>
+                        <div id="inProgressCount" style="font-size:1.75rem; font-weight:700; margin-top:0.5rem;">0</div>
+                    </div>
+                    <div class="card" style="flex:1; min-width:160px; text-align:center; padding:1rem;">
+                        <div style="font-size:1.25rem; color:#32CD32;">Resolved</div>
+                        <div id="resolvedCount" style="font-size:1.75rem; font-weight:700; margin-top:0.5rem;">0</div>
+                    </div>
+                </div>
+
                 <section class="issues-section">
                     <h2>All Issues</h2>
                     <div id="issuesList" class="issues-grid admin-grid">
@@ -103,10 +122,23 @@ requireAdmin();
                 }
                 
                 if (data.data.length === 0) {
+                    // update counters
+                    document.getElementById('totalIssuesCount').textContent = 0;
+                    document.getElementById('inProgressCount').textContent = 0;
+                    document.getElementById('resolvedCount').textContent = 0;
+
                     issuesList.innerHTML = '<p class="empty">No issues reported yet.</p>';
                     return;
                 }
-                
+
+                // compute dynamic counts
+                const total = data.data.length;
+                const inProgress = data.data.filter(i => i.status === 'in_progress').length;
+                const resolved = data.data.filter(i => i.status === 'resolved').length;
+                document.getElementById('totalIssuesCount').textContent = total;
+                document.getElementById('inProgressCount').textContent = inProgress;
+                document.getElementById('resolvedCount').textContent = resolved;
+
                 data.data.forEach(issue => {
                     const statusColor = {
                         'submitted': '#FFA500',
@@ -133,6 +165,7 @@ requireAdmin();
                             <span>📅 ${new Date(issue.created_at).toLocaleDateString()}</span>
                         </div>
                         ${issue.image_path ? `<img src="${escapeHtml(issue.image_path)}" alt="Issue image" class="issue-image">` : ''}
+                        ${issue.resolved_image ? `<div style="margin-top:0.5rem;"><small style="display:block;color:#4CAF50;font-weight:600;">Resolved Image</small><img src="${escapeHtml(issue.resolved_image)}" alt="Resolved image" class="issue-image"></div>` : ''}
                         <div class="admin-actions">
                             <button class="btn btn-small btn-primary" onclick="openStatusModal(${issue.id})">Update Status</button>
                             <button class="btn btn-small btn-danger" onclick="deleteIssue(${issue.id})">Delete</button>
