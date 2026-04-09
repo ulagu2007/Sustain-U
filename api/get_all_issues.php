@@ -87,18 +87,8 @@ while ($row = $result->fetch_assoc()) {
         'building' => $row['building'],
         'floor' => $row['floor'],
         'area' => $row['area'],
-        'image_before' => $row['image_before'],
-        'image_after' => $row['image_after'],
-        'status' => $row['status'],
-        'created_at' => $row['created_at'],
-        'resolved_at' => $row['resolved_at'],
-        'report_path' => $row['report_path']
-    ];
-}
-
-$stmt->close();
-
-http_response_code(200);
+        'image_before' => normalizeImagePath($row['image_before'] ?? $row['image_path'] ?? ''),
+        'resolved_image' => normalizeImagePath($row['resolved_image_path'] ?? $row['image_after'] ?? ''),
 echo json_encode([
     'success' => true,
     'issues' => $issues,

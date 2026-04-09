@@ -1,0 +1,15 @@
+﻿Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+name	varchar(255)	NO		NULL	
+email	varchar(255)	NO	UNI	NULL	
+password	varchar(255)	NO		NULL	
+role	enum('student','admin')	YES		student	
+points	int(11)	YES		0	
+department	varchar(100)	YES		NULL	
+section	varchar(50)	YES		NULL	
+register_number	varchar(100)	YES		NULL	
+phone	varchar(20)	YES		NULL	
+degree	varchar(100)	YES		NULL	
+created_at	timestamp	NO		current_timestamp()	
+updated_at	timestamp	NO		current_timestamp()	on update current_timestamp()
+other_details	text	YES		NULL	

@@ -7,7 +7,13 @@ require_once 'config.php';
 requireLogin();
 
 if (isAdmin()) {
-    header('Location: /Sustain-U/admin_dashboard.php');
+    header('Location: admin_dashboard.php');
+    exit;
+}
+
+// enforce mandatory profile completion for students
+if (empty($_SESSION['profile_complete'])) {
+    header('Location: complete_profile.php');
     exit;
 }
 ?>
@@ -17,7 +23,7 @@ if (isAdmin()) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Issues - Sustain-U</title>
-    <link rel="stylesheet" href="/Sustain-U/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="app">
     <?php include __DIR__ . '/inc/header.php'; ?>
@@ -41,13 +47,9 @@ if (isAdmin()) {
 
                     <select id="categoryFilter" style="flex: 1; min-width: 150px;">
                         <option value="">All Categories</option>
-                        <option value="water_waste">💧 Water Wastage</option>
-                        <option value="plastic_pollution">♻️ Plastic Pollution</option>
-                        <option value="air_quality">💨 Air Quality</option>
-                        <option value="energy_waste">⚡ Energy Waste</option>
-                        <option value="littering">🗑️ Littering</option>
-                        <option value="tree_damage">🌳 Tree Damage</option>
-                        <option value="other">📋 Other</option>
+                        <option value="air">Air Issues</option>
+                        <option value="water">Water Issues</option>
+                        <option value="waste">Waste Issues</option>
                     </select>
 
                     <button id="resetFilters" class="btn btn-secondary">Reset</button>
@@ -64,18 +66,18 @@ if (isAdmin()) {
         </div>
     </main>
 
-    <!-- Bottom Navigation for Mobile -->
-    <nav class="bottom-nav">
-        <div class="bottom-nav-items">
-            <a href="/Sustain-U/my_works.php" class="bottom-nav-item">📊 Dashboard</a>
-            <a href="/Sustain-U/report_issue.php" class="bottom-nav-item">📝 Report</a>
-            <a href="/Sustain-U/my_works.php" class="bottom-nav-item active">📋 My Issues</a>
-            <a href="/Sustain-U/profile.php" class="bottom-nav-item">👤 Profile</a>
-        </div>
-    </nav>
 
-    <script src="/Sustain-U/js/main.js"></script>
+
+    <script src="js/main.js"></script>
     <script>
+        // Global fallback for broken images
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.target.src = 'assets/img/placeholder.png';
+                e.target.style.opacity = '0.5';
+            }
+        }, true);
+
         let allIssues = [];
 
         // Load issues on page load
@@ -92,7 +94,7 @@ if (isAdmin()) {
 
         async function loadIssues() {
             try {
-                const response = await fetch('/Sustain-U/api/get_student_issues.php', { credentials: 'same-origin' });
+                const response = await fetch('api/get_student_issues.php', { credentials: 'same-origin' });
                 const data = await response.json();
 
                 if (!data.success) {
@@ -107,7 +109,7 @@ if (isAdmin()) {
                     document.getElementById('issuesList').innerHTML = 
                         `<div class="alert alert-info">
                             <strong>No issues submitted yet</strong><br>
-                            <a href="/Sustain-U/report_issue.php" class="btn btn-primary" style="margin-top: 1rem;">Submit Your First Report</a>
+                            <a href="report_issue.php" class="btn btn-primary" style="margin-top: 1rem;">Submit Your First Report</a>
                         </div>`;
                     return;
                 }
@@ -142,15 +144,16 @@ if (isAdmin()) {
             }
 
             issuesList.innerHTML = issues.map(issue => `
-                <div class="card" style="margin-bottom: 1.5rem; cursor: pointer;" onclick="location.href='/Sustain-U/issue_details.php?id=${issue.id}'">
+                <div class="card" style="margin-bottom: 1.5rem; cursor: pointer;" onclick="location.href='issue_details.php?id=${issue.id}'">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                         <div>
-                            <h3 style="margin: 0; margin-bottom: 0.5rem;">${sanitize(issue.category.replace(/_/g, ' ').toUpperCase())}</h3>
+                            <h3 style="margin: 0; margin-bottom: 0.5rem;">${sanitize(getCategoryBadge(issue.category))}</h3>
                             <small style="color: #666;">${new Date(issue.created_at).toLocaleString()}</small>
                         </div>
                         <div style="text-align: right;">
                             ${getStatusBadge(issue.status)}
                             ${getUrgencyBadge(issue.urgency)}
+                            ${issue.status === 'resolved' ? `<div style="margin-top:0.5rem;"><a href="api/generate_pdf.php?id=${issue.id}" class="btn btn-small btn-primary" style="font-size:0.75rem; display:inline-block;" onclick="event.stopPropagation()">Download Report</a></div>` : ''}
                         </div>
                     </div>
 
@@ -164,7 +167,20 @@ if (isAdmin()) {
 
                     ${issue.image_path ? `
                         <div style="margin-top: 1rem;">
-                            <img src="${sanitize(issue.image_path)}" alt="Issue image" style="max-height: 200px; border-radius: var(--radius);">
+                            <img src="${sanitize(issue.image_path)}" 
+                                 alt="Issue image" 
+                                 style="max-height: 200px; border-radius: var(--radius);"
+                                 onerror="this.onerror=null; this.src='assets/img/placeholder.png'; this.style.opacity='0.5';">
+                        </div>
+                    ` : ''}
+
+                    ${issue.resolved_image ? `
+                        <div style="margin-top: 0.75rem;">
+                            <small style="display:block; color:#4CAF50; font-weight:600;">Resolved Image</small>
+                            <img src="${sanitize(issue.resolved_image)}" 
+                                 alt="Resolved image" 
+                                 style="max-height: 160px; border-radius: var(--radius);"
+                                 onerror="this.onerror=null; this.src='assets/img/placeholder.png'; this.style.opacity='0.5';">
                         </div>
                     ` : ''}
                 </div>
@@ -182,11 +198,11 @@ if (isAdmin()) {
 
         function getUrgencyBadge(urgency) {
             const badges = {
-                'low': '<span class="badge badge-success">🟢 Low</span>',
-                'medium': '<span class="badge badge-warning">🟡 Medium</span>',
-                'high': '<span class="badge badge-danger">🔴 High</span>'
+                'can_wait': '<span class="badge badge-success">🟢 Can Wait</span>',
+                'needs_attention': '<span class="badge badge-warning">🟡 Needs Attention</span>',
+                'emergency': '<span class="badge badge-danger">🔴 Emergency</span>'
             };
-            return badges[urgency] || '';
+            return badges[urgency] || `<span class="badge badge-secondary">${urgency}</span>`;
         }
 
         function sanitize(text) {
@@ -195,5 +211,6 @@ if (isAdmin()) {
             return div.innerHTML;
         }
     </script>
+    <?php include __DIR__ . '/inc/footer.php'; ?>
 </body>
 </html>

@@ -8,7 +8,7 @@ requireLogin();
 
 $issue_id = intval($_GET['id'] ?? 0);
 if (!$issue_id) {
-    header('Location: /Sustain-U/my_works.php');
+    header('Location: my_works.php');
     exit;
 }
 ?>
@@ -18,7 +18,7 @@ if (!$issue_id) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Issue Details - Sustain-U</title>
-    <link rel="stylesheet" href="/Sustain-U/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="app">
     <?php include __DIR__ . '/inc/header.php'; ?>
@@ -39,14 +39,27 @@ if (!$issue_id) {
                             <h2 id="issueTitle" style="margin: 0;">Issue Title</h2>
                             <p id="issueDate" style="margin: 0.5rem 0 0; color: #666;">Date</p>
                         </div>
-                        <div id="statusBadgeContainer"></div>
+                        <div style="text-align: right;">
+                            <div id="statusBadgeContainer"></div>
+                            <div id="downloadReportContainer" style="margin-top: 0.75rem; display: none;">
+                                <button onclick="downloadPDF()" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+                                    <span>📄</span> Download Audit Report
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card-body">
                     <!-- Issue Image -->
                     <div id="imageContainer" style="margin-bottom: 2rem; display: none;">
-                        <img id="issueImage" style="max-width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--border-color);">
+                        <img id="issueImage" alt="Issue" style="max-width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--border-color);">
+                    </div>
+
+                    <!-- Resolved Image (appears inline, no separate 'Resolution Proof' block) -->
+                    <div id="resolvedImageContainer" style="margin-bottom: 2rem; display: none;">
+                        <h4 style="margin:0.25rem 0 0.5rem; color: var(--primary-color);">Resolved Image</h4>
+                        <img id="resolvedImage" alt="Resolved" style="max-width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--border-color);">
                     </div>
 
                     <!-- Issue Details -->
@@ -85,6 +98,7 @@ if (!$issue_id) {
                         <h4 style="color: var(--primary-color); margin-top: 0;">Reported By</h4>
                         <p id="reporterName" style="margin: 0.5rem 0 0; font-weight: 500;">--</p>
                         <p id="reporterEmail" style="margin: 0.5rem 0 0; color: #666;">--</p>
+                        <p id="reporterRegNum" style="margin: 0.25rem 0 0; color: #666; font-size: 0.9rem;">--</p>
                     </div>
 
                 </div>
@@ -94,18 +108,22 @@ if (!$issue_id) {
                     <h4 style="margin-top: 0; color: var(--primary-color);">Admin Actions</h4>
 
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <button id="markInProgressBtn" class="btn btn-info" onclick="updateIssueStatus('in_progress')">Mark In Progress</button>
-                        <button id="markResolvedBtn" class="btn btn-success" onclick="updateIssueStatus('resolved')">Mark Resolved</button>
-                        <button id="downloadReportBtn" class="btn btn-secondary" onclick="downloadPDF()">Download Report</button>
+                        <button id="markInProgressBtn" class="btn btn-info" onclick="updateIssueStatus('in_progress')">Mark as In Progress</button>
+                        <button id="markResolvedBtn" class="btn btn-success" onclick="document.getElementById('resolutionSection').style.display='block'; document.getElementById('resolutionNotes').focus();">Mark as Resolved</button>
+
                     </div>
 
                     <!-- Resolution Update -->
                     <div id="resolutionSection" style="margin-top: 1.5rem; display: none;">
-                        <h5>Add Resolution Notes</h5>
+                        <h5>Add Resolution Notes & Image</h5>
                         <div class="form-group">
-                            <textarea id="resolutionNotes" placeholder="Describe the resolution steps taken..." rows="4"></textarea>
+                            <label for="resolutionImageInput">Upload Resolution Image (required to mark resolved)</label>
+                            <input type="file" id="resolutionImageInput" accept="image/*">
                         </div>
-                        <button class="btn btn-primary" onclick="submitResolution()">Save Resolution</button>
+                        <div class="form-group">
+                            <textarea id="resolutionNotes" placeholder="Describe the resolution steps taken..." rows="4" required></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="submitResolution()">Save Resolution & Mark Resolved</button>
                     </div>
 
                     <!-- Resolution Display -->
@@ -118,7 +136,7 @@ if (!$issue_id) {
         </div>
     </main>
 
-    <script src="/Sustain-U/js/main.js"></script>
+    <script src="js/main.js"></script>
     <script>
         const issueId = <?php echo $issue_id; ?>;
         const isAdmin = <?php echo isAdmin() ? 'true' : 'false'; ?>;
@@ -128,7 +146,7 @@ if (!$issue_id) {
 
         async function loadIssueDetails() {
             try {
-                const response = await fetch(`/Sustain-U/api/get_issue_details.php?id=${issueId}`, { credentials: 'same-origin' });
+                const response = await fetch(`api/get_issue_details.php?id=${issueId}`, { credentials: 'same-origin' });
                 const data = await response.json();
 
                 if (!data.success) {
@@ -150,14 +168,21 @@ if (!$issue_id) {
 
         function displayIssue(issue) {
             // Set title and date
-            document.getElementById('issueTitle').textContent = sanitize(issue.category.replace(/_/g, ' ').toUpperCase());
+            const catLabel = getCategoryBadge(issue.category);
+            document.getElementById('issueTitle').textContent = sanitize(catLabel);
             document.getElementById('issueDate').textContent = 'Submitted ' + new Date(issue.created_at).toLocaleString();
 
-            // Set status badge
+            // Set status badge and conditional download button
             document.getElementById('statusBadgeContainer').innerHTML = getStatusBadge(issue.status) + ' ' + getUrgencyBadge(issue.urgency);
+            
+            if (issue.status === 'resolved') {
+                document.getElementById('downloadReportContainer').style.display = 'block';
+            } else {
+                document.getElementById('downloadReportContainer').style.display = 'none';
+            }
 
             // Set details
-            document.getElementById('issueCategory').textContent = issue.category.replace(/_/g, ' ').toUpperCase();
+            document.getElementById('issueCategory').textContent = catLabel;
             document.getElementById('issueUrgency').textContent = '⚠️ ' + issue.urgency.toUpperCase();
             document.getElementById('issueLocation').textContent = sanitize(issue.location);
             document.getElementById('issueStatus').textContent = issue.status.toUpperCase();
@@ -166,32 +191,50 @@ if (!$issue_id) {
             // Set reporter
             document.getElementById('reporterName').textContent = sanitize(issue.user_name);
             document.getElementById('reporterEmail').textContent = sanitize(issue.email);
+            if (issue.register_number) {
+                document.getElementById('reporterRegNum').textContent = 'Reg: ' + sanitize(issue.register_number) + (issue.section ? ' (' + sanitize(issue.section) + ')' : '');
+                document.getElementById('reporterRegNum').style.display = 'block';
+            } else {
+                document.getElementById('reporterRegNum').style.display = 'none';
+            }
 
-            // Set image if available
+            // Set original image if available
             if (issue.image_path) {
                 document.getElementById('issueImage').src = sanitize(issue.image_path);
                 document.getElementById('imageContainer').style.display = 'block';
             }
 
-            // Coordinates removed (geofencing deprecated) — no frontend coordinate handling.
+            // Show resolved image inline (if present)
+            if (issue.resolved_image) {
+                document.getElementById('resolvedImage').src = sanitize(issue.resolved_image);
+                document.getElementById('resolvedImageContainer').style.display = 'block';
+            } else {
+                document.getElementById('resolvedImageContainer').style.display = 'none';
+            }
 
             // Show admin actions if admin
             if (isAdmin) {
                 document.getElementById('adminActions').style.display = 'block';
                 
                 // Show/hide buttons based on status
-                document.getElementById('markInProgressBtn').style.display = issue.status !== 'in_progress' ? 'block' : 'none';
+                document.getElementById('markInProgressBtn').style.display = issue.status === 'submitted' ? 'block' : 'none';
                 document.getElementById('markResolvedBtn').style.display = issue.status !== 'resolved' ? 'block' : 'none';
 
-                // Show resolution section if in progress
+                // Show resolution section if in progress OR when admin explicitly clicks Mark Resolved
                 if (issue.status === 'in_progress') {
                     document.getElementById('resolutionSection').style.display = 'block';
+                } else if (issue.status === 'resolved') {
+                     document.getElementById('resolutionSection').style.display = 'none';
+                } else {
+                    document.getElementById('resolutionSection').style.display = 'none';
                 }
 
-                // Show resolution if resolved
+                // Show resolution notes if available
                 if (issue.resolution_notes) {
                     document.getElementById('resolutionText').textContent = sanitize(issue.resolution_notes);
                     document.getElementById('resolutionDisplay').style.display = 'block';
+                } else {
+                    document.getElementById('resolutionDisplay').style.display = 'none';
                 }
             }
         }
@@ -207,9 +250,9 @@ if (!$issue_id) {
 
         function getUrgencyBadge(urgency) {
             const badges = {
-                'low': '<span class="badge badge-success">🟢 Low</span>',
-                'medium': '<span class="badge badge-warning">🟡 Medium</span>',
-                'high': '<span class="badge badge-danger">🔴 High</span>'
+                'can_wait': '<span class="badge badge-success">🟢 Can Wait</span>',
+                'needs_attention': '<span class="badge badge-warning">🟡 Needs Attention</span>',
+                'emergency': '<span class="badge badge-danger">🔴 Emergency</span>'
             };
             return badges[urgency] || '';
         }
@@ -218,14 +261,15 @@ if (!$issue_id) {
             if (!confirm(`Update issue status to ${newStatus.replace('_', ' ').toUpperCase()}?`)) return;
 
             try {
-                const response = await fetch('/Sustain-U/api/update_status.php', {
+                // server expects form-encoded POST (not JSON) so use FormData
+                const formData = new FormData();
+                formData.append('issue_id', issueId);
+                formData.append('status', newStatus);
+
+                const response = await fetch('api/update_status.php', {
                     method: 'POST',
                     credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        issue_id: issueId,
-                        status: newStatus
-                    })
+                    body: formData
                 });
 
                 const data = await response.json();
@@ -242,25 +286,34 @@ if (!$issue_id) {
 
         async function submitResolution() {
             const notes = document.getElementById('resolutionNotes').value.trim();
+            const fileInput = document.getElementById('resolutionImageInput');
+
             if (!notes) {
                 alert('Please enter resolution notes');
                 return;
             }
 
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                alert('Please attach a resolution image before saving');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('issue_id', issueId);
+            formData.append('status', 'resolved');
+            formData.append('resolution_notes', notes);
+            formData.append('resolution_image', fileInput.files[0]);
+
             try {
-                const response = await fetch('/Sustain-U/api/upload_resolution.php', {
+                const response = await fetch('api/update_status.php', {
                     method: 'POST',
                     credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        issue_id: issueId,
-                        resolution_notes: notes
-                    })
+                    body: formData
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    alert('Resolution saved successfully');
+                    alert('Resolution saved and issue marked resolved');
                     loadIssueDetails();
                 } else {
                     alert(data.message || 'Failed to save resolution');
@@ -272,7 +325,7 @@ if (!$issue_id) {
         }
 
         function downloadPDF() {
-            window.location.href = `/Sustain-U/api/generate_pdf.php?id=${issueId}`;
+            window.location.href = `api/generate_pdf.php?id=${issueId}`;
         }
 
         function sanitize(text) {
@@ -281,5 +334,6 @@ if (!$issue_id) {
             return div.innerHTML;
         }
     </script>
+    <?php include __DIR__ . '/inc/footer.php'; ?>
 </body>
 </html>

@@ -5,11 +5,59 @@
  */
 require_once 'config.php';
 
-// Redirect if already logged in as admin
-if (isAdmin()) {
-    header('Location: /Sustain-U/admin_dashboard.php');
+// Server-side POST handler (fallback) so admin login works even if fetch/cookie issues occur
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if (empty($email) || empty($password)) {
+        $_SESSION['login_error'] = 'Email and password are required';
+        header('Location: admin_login.php');
+        exit;
+    }
+
+    // Removal of Hardcoded Admins: Relying solely on database authentication.
+    // Logic continues below to check the users table for admin role.
+
+    // Try DB-backed admin account
+    require_once __DIR__ . '/api/db.php';
+    $stmt = $conn->prepare("SELECT id, name, email, password, role FROM users WHERE email = ?");
+    if ($stmt) {
+        $stmt->bind_param('s', $email);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if ($user && password_verify($password, $user['password'])) {
+            if (($user['role'] ?? '') === 'admin') {
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_name'] = $user['name'];
+                $_SESSION['user_email'] = $user['email'];
+                $_SESSION['user_role'] = 'admin';
+                $_SESSION['login_time'] = time();
+                session_regenerate_id(true);
+                header('Location: admin_dashboard.php');
+                exit;
+            }
+            $_SESSION['login_error'] = 'Account is not an administrator';
+            header('Location: admin_login.php');
+            exit;
+        }
+    }
+
+    $_SESSION['login_error'] = 'Invalid email or password';
+    header('Location: admin_login.php');
     exit;
 }
+
+// Redirect if already logged in as admin
+if (isAdmin()) {
+    header('Location: admin_dashboard.php');
+    exit;
+}
+
+$flashError = $_SESSION['login_error'] ?? null;
+unset($_SESSION['login_error']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -17,7 +65,7 @@ if (isAdmin()) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - Sustain-U</title>
-    <link rel="stylesheet" href="/Sustain-U/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="login-page">
     <?php include __DIR__ . '/inc/header.php'; ?>
@@ -30,12 +78,12 @@ if (isAdmin()) {
             </div>
 
             <div class="card-body">
-                <div id="errorMessage" class="alert alert-danger hidden" style="margin-bottom: 1.5rem;"></div>
+            <div id="errorMessage" class="alert alert-danger <?= empty($flashError) ? 'hidden' : '' ?>" style="margin-bottom: 1.5rem;"><?= !empty($flashError) ? sanitize($flashError) : '' ?></div> 
 
                 <form id="adminLoginForm" method="POST">
                     <div class="form-group">
                         <label for="email">Admin Email</label>
-                        <input type="email" id="email" name="email" required placeholder="admin@srmist.edu.in" autofocus>
+                        <input type="email" id="email" name="email" required placeholder="Enter Admin Email" autofocus>
                         <small class="error-message" id="emailError"></small>
                     </div>
 
@@ -51,15 +99,15 @@ if (isAdmin()) {
                 <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-color);">
 
                 <p style="text-align: center; font-size: 0.9rem; color: #666;">
-                    <strong>Student?</strong> <a href="/Sustain-U/login.php">Login as Student</a>
+                    <strong>Student?</strong> <a href="login.php">Login as Student</a>
                 </p>
 
-                <p style="text-align:center; font-size:0.85rem; color:#999; margin-top:0.75rem;">Note: If you are redirected back to this page after successful login, please ensure cookies are enabled in your browser and that the server is served over the same origin (no cross-site requests).</p>
+
             </div>
         </div>
     </main>
 
-    <script src="/Sustain-U/js/main.js"></script>
+    <script src="js/main.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('adminLoginForm');
@@ -70,7 +118,8 @@ if (isAdmin()) {
                 return;
             }
 
-            form.addEventListener('submit', async (e) => {
+            // Named handler so we can remove it if we need to fallback to a normal POST
+            async function handleAdminLogin(e) {
                 e.preventDefault();
 
                 errorMessage.classList.add('hidden');
@@ -90,43 +139,40 @@ if (isAdmin()) {
                     return;
                 }
 
-                try {
-                    const button = form.querySelector('button[type="submit"]');
-                    button.disabled = true;
-                    button.textContent = 'Verifying...';
+                const button = form.querySelector('button[type="submit"]');
+                button.disabled = true;
+                button.textContent = 'Verifying...';
 
-                    const response = await fetch('/Sustain-U/api/login_user.php', {
+                try {
+                    const response = await fetch('api/login_user.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            email: email,
-                            password: password,
-                            is_admin: true
-                        })
+                        credentials: 'include', // ensure cookies are always sent/accepted
+                        body: JSON.stringify({ email, password, is_admin: true })
                     });
 
                     const data = await response.json();
 
-                    if (data.success) {
-                        // Respect server-provided redirect when available (keeps client/server behavior consistent)
-                        window.location.href = data.redirect || '/Sustain-U/admin_dashboard.php';
-                    } else {
-                        errorMessage.textContent = data.message || 'Login failed. Invalid credentials.';
-                        errorMessage.classList.remove('hidden');
-                        button.disabled = false;
-                        button.textContent = 'Login as Admin';
+                    if (data && data.success) {
+                        window.location.href = data.redirect || 'admin_dashboard.php';
+                        return;
                     }
-                } catch (error) {
-                    console.error('Error:', error);
-                    errorMessage.textContent = 'An error occurred. Please try again later.';
+
+                    errorMessage.textContent = data.message || 'Login failed. Invalid credentials.';
                     errorMessage.classList.remove('hidden');
-                    form.querySelector('button[type="submit"]').disabled = false;
-                    form.querySelector('button[type="submit"]').textContent = 'Login as Admin';
+                    button.disabled = false;
+                    button.textContent = 'Login as Admin';
+                } catch (err) {
+                    // Network/fetch failed — fallback to normal form POST to let server handle (useful when fetch/cookie blocked)
+                    console.warn('Fetch failed, falling back to regular POST', err);
+                    form.removeEventListener('submit', handleAdminLogin);
+                    form.submit();
                 }
-            });
+            }
+
+            form.addEventListener('submit', handleAdminLogin);
         });
     </script>
 </body>

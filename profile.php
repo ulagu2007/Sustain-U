@@ -7,7 +7,13 @@ require_once 'config.php';
 requireLogin();
 
 if (isAdmin()) {
-    header('Location: /Sustain-U/admin_dashboard.php');
+    header('Location: admin_dashboard.php');
+    exit;
+}
+
+// redirect first-time users to complete profile
+if (empty($_SESSION['profile_complete'])) {
+    header('Location: complete_profile.php');
     exit;
 }
 ?>
@@ -17,7 +23,7 @@ if (isAdmin()) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Sustain-U</title>
-    <link rel="stylesheet" href="/Sustain-U/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="app">
     <?php include __DIR__ . '/inc/header.php'; ?>
@@ -63,9 +69,15 @@ if (isAdmin()) {
 
             <div class="card-body">
                 <div id="profileInfo" style="display: none;">
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="color: var(--primary-color); font-weight: 600;">Full Name</label>
-                        <p id="displayName" style="margin: 0.5rem 0 0;">--</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                         <div>
+                            <label style="color: var(--primary-color); font-weight: 600;">Full Name</label>
+                            <p id="displayName" style="margin: 0.5rem 0 0;">--</p>
+                        </div>
+                        <div>
+                            <label style="color: var(--primary-color); font-weight: 600;">Registration Number</label>
+                            <p id="displayRegNo" style="margin: 0.5rem 0 0;">--</p>
+                        </div>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
@@ -73,9 +85,20 @@ if (isAdmin()) {
                         <p id="displayEmail" style="margin: 0.5rem 0 0;">--</p>
                     </div>
 
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                         <div>
+                            <label style="color: var(--primary-color); font-weight: 600;">Department</label>
+                            <p id="displayDept" style="margin: 0.5rem 0 0;">--</p>
+                        </div>
+                        <div>
+                            <label style="color: var(--primary-color); font-weight: 600;">Section</label>
+                            <p id="displaySection" style="margin: 0.5rem 0 0;">--</p>
+                        </div>
+                    </div>
+
                     <div style="margin-bottom: 1.5rem;">
-                        <label style="color: var(--primary-color); font-weight: 600;">Department</label>
-                        <p id="displayDept" style="margin: 0.5rem 0 0;">--</p>
+                        <label style="color: var(--primary-color); font-weight: 600;">Degree</label>
+                        <p id="displayDegree" style="margin: 0.5rem 0 0;">--</p>
                     </div>
 
                     <div style="margin-bottom: 1.5rem;">
@@ -107,69 +130,19 @@ if (isAdmin()) {
             </div>
         </div>
 
-        <!-- Change Password Section -->
-        <div class="card">
-            <div class="card-header">
-                <h3>Security</h3>
-            </div>
 
-            <div class="card-body">
-                <button class="btn btn-secondary btn-block" onclick="togglePasswordForm()">Change Password</button>
-
-                <form id="passwordForm" style="display: none; margin-top: 1.5rem;">
-                    <div class="form-group">
-                        <label for="currentPassword">Current Password</label>
-                        <input type="password" id="currentPassword" name="current_password" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="newPassword">New Password</label>
-                        <input type="password" id="newPassword" name="new_password" required>
-                        <small style="color: #666;">At least 8 characters</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirmNewPassword">Confirm New Password</label>
-                        <input type="password" id="confirmNewPassword" name="confirm_password" required>
-                    </div>
-
-                    <div id="passwordMessage" class="alert alert-danger hidden" style="margin-bottom: 1rem;"></div>
-
-                    <div style="display: flex; gap: 1rem;">
-                        <button type="submit" class="btn btn-primary">Update Password</button>
-                        <button type="button" class="btn btn-secondary" onclick="togglePasswordForm()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Logout Section -->
-        <div class="card" style="background: rgba(244, 67, 54, 0.05); border: 1px solid rgba(244, 67, 54, 0.2);">
-            <div class="card-body">
-                <p style="margin: 0 0 1rem;">Logout from your account on all devices.</p>
-                <a href="/Sustain-U/logout.php" class="btn btn-danger btn-block">Logout</a>
-            </div>
-        </div>
     </main>
 
-    <!-- Bottom Navigation for Mobile -->
-    <nav class="bottom-nav">
-        <div class="bottom-nav-items">
-            <a href="/Sustain-U/my_works.php" class="bottom-nav-item">📊 Dashboard</a>
-            <a href="/Sustain-U/report_issue.php" class="bottom-nav-item">📝 Report</a>
-            <a href="/Sustain-U/my_works.php" class="bottom-nav-item">📋 My Issues</a>
-            <a href="/Sustain-U/profile.php" class="bottom-nav-item active">👤 Profile</a>
-        </div>
-    </nav>
 
-    <script src="/Sustain-U/js/main.js"></script>
+
+    <script src="js/main.js"></script>
     <script>
         // Load profile on page load
         loadProfile();
 
         async function loadProfile() {
             try {
-                const response = await fetch('/Sustain-U/api/get_user_profile.php', { credentials: 'same-origin' });
+                const response = await fetch('api/get_user_profile.php', { credentials: 'same-origin' });
                 const data = await response.json();
 
                 if (!data.success) {
@@ -193,7 +166,10 @@ if (isAdmin()) {
                 document.getElementById('displayName').textContent = sanitize(user.full_name);
                 document.getElementById('displayEmail').textContent = sanitize(user.email);
                 document.getElementById('displayDept').textContent = sanitize(user.department || 'N/A');
+                document.getElementById('displaySection').textContent = sanitize(user.section || 'N/A');
                 document.getElementById('displayPhone').textContent = sanitize(user.phone || 'Not provided');
+                document.getElementById('displayRegNo').textContent = sanitize(user.register_number || 'N/A');
+                document.getElementById('displayDegree').textContent = sanitize(user.degree || 'N/A');
                 document.getElementById('displayJoined').textContent = new Date(user.created_at).toLocaleDateString();
 
                 // Hide loading and show profile
@@ -237,57 +213,60 @@ if (isAdmin()) {
             form.style.display = form.style.display === 'none' ? 'block' : 'none';
         }
 
-        // Password change handler
-        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Password change handler (only if form exists on page)
+        const passwordForm = document.getElementById('passwordForm');
+        if (passwordForm) {
+            passwordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
 
-            const currentPassword = document.getElementById('currentPassword').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmNewPassword').value;
-            const messageDiv = document.getElementById('passwordMessage');
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmNewPassword').value;
+                const messageDiv = document.getElementById('passwordMessage');
 
-            if (newPassword !== confirmPassword) {
-                messageDiv.textContent = 'New passwords do not match';
-                messageDiv.classList.remove('hidden');
-                return;
-            }
-
-            if (newPassword.length < 8) {
-                messageDiv.textContent = 'New password must be at least 8 characters';
-                messageDiv.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                const response = await fetch('/Sustain-U/api/update_profile.php', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        current_password: currentPassword,
-                        new_password: newPassword
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    messageDiv.className = 'alert alert-success';
-                    messageDiv.textContent = 'Password updated successfully';
-                    document.getElementById('passwordForm').reset();
-                    setTimeout(() => togglePasswordForm(), 2000);
-                } else {
-                    messageDiv.className = 'alert alert-danger';
-                    messageDiv.textContent = data.message || 'Failed to update password';
+                if (newPassword !== confirmPassword) {
+                    messageDiv.textContent = 'New passwords do not match';
+                    messageDiv.classList.remove('hidden');
+                    return;
                 }
-                messageDiv.classList.remove('hidden');
-            } catch (error) {
-                console.error('Error:', error);
-                messageDiv.className = 'alert alert-danger';
-                messageDiv.textContent = 'Error updating password';
-                messageDiv.classList.remove('hidden');
-            }
-        });
+
+                if (newPassword.length < 8) {
+                    messageDiv.textContent = 'New password must be at least 8 characters';
+                    messageDiv.classList.remove('hidden');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('api/update_profile.php', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            current_password: currentPassword,
+                            new_password: newPassword
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        messageDiv.className = 'alert alert-success';
+                        messageDiv.textContent = 'Password updated successfully';
+                        passwordForm.reset();
+                        setTimeout(() => togglePasswordForm(), 2000);
+                    } else {
+                        messageDiv.className = 'alert alert-danger';
+                        messageDiv.textContent = data.message || 'Failed to update password';
+                    }
+                    messageDiv.classList.remove('hidden');
+                } catch (error) {
+                    console.error('Error:', error);
+                    messageDiv.className = 'alert alert-danger';
+                    messageDiv.textContent = 'Error updating password';
+                    messageDiv.classList.remove('hidden');
+                }
+            });
+        }
 
         function sanitize(text) {
             const div = document.createElement('div');
@@ -295,5 +274,6 @@ if (isAdmin()) {
             return div.innerHTML;
         }
     </script>
+    <?php include __DIR__ . '/inc/footer.php'; ?>
 </body>
 </html>

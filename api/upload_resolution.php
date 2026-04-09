@@ -80,32 +80,47 @@ if (!move_uploaded_file($file['tmp_name'], $filepath)) {
 }
 
 // ============================================
-// UPDATE ISSUE WITH AFTER IMAGE
+// UPDATE ISSUE WITH RESOLVED IMAGE (use canonical column resolved_image_path)
 // ============================================
 
-$stmt = $conn->prepare("UPDATE issues SET image_after = ? WHERE id = ?");
-if (!$stmt) {
-    http_response_code(500);
-    logError('Prepare failed: ' . $conn->error);
-    @unlink($filepath);
-    $response['message'] = 'Database error';
-    echo json_encode($response);
-    exit;
+// store relative path
+$relative = 'uploads/' . $filename;
+
+// prefer resolved_image_path column; fall back to image_after if necessary
+$updated = false;
+
+$colsRes = $conn->query("SHOW COLUMNS FROM issues");
+$cols = [];
+if ($colsRes) {
+    while ($c = $colsRes->fetch_assoc()) {
+        $cols[] = $c['Field'];
+    }
 }
 
-$stmt->bind_param("si", $filename, $issue_id);
-
-if (!$stmt->execute()) {
-    http_response_code(500);
-    logError('Execute failed: ' . $stmt->error);
-    @unlink($filepath);
-    $stmt->close();
-    $response['message'] = 'Failed to update issue';
-    echo json_encode($response);
-    exit;
+if (in_array('resolved_image_path', $cols)) {
+    $stmt = $conn->prepare("UPDATE issues SET resolved_image_path = ? WHERE id = ?");
+    if ($stmt) {
+        $stmt->bind_param("si", $relative, $issue_id);
+        $stmt->execute();
+        $stmt->close();
+        $updated = true;
+    }
 }
 
-$stmt->close();
+if (!$updated && in_array('image_after', $cols)) {
+    $stmt = $conn->prepare("UPDATE issues SET image_after = ? WHERE id = ?");
+    if ($stmt) {
+        $stmt->bind_param("si", $filename, $issue_id);
+        $stmt->execute();
+        $stmt->close();
+        $updated = true;
+    }
+}
+
+if (!$updated) {
+    // If neither column exists, still return success (file saved) but warn in logs
+    logError('No column found to save resolved image for issue ' . $issue_id);
+}
 
 http_response_code(200);
 $response['success'] = true;

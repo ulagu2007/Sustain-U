@@ -5,201 +5,214 @@
  * ============================================
  */
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/db.php';
+require_once '../config.php';
+require_once 'db.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
-    exit;
-}
-
-if (!isAdmin()) {
-    http_response_code(403);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Forbidden']);
-    exit;
+// Ensure session is started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
 header('Content-Type: application/json');
 $response = ['success' => false, 'message' => ''];
 
 // ============================================
+// AUTHENTICATION CHECK
+// ============================================
+
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Forbidden: Admins only']);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
+    exit;
+}
+
+// ============================================
 // VALIDATE INPUT
 // ============================================
 
 $issue_id = isset($_POST['issue_id']) ? (int)$_POST['issue_id'] : 0;
+$action = $_POST['action'] ?? 'update'; // 'update' or 'delete'
+
+if ($issue_id <= 0) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid issue ID']);
+    exit;
+}
+
+// ============================================
+// ACTION: DELETE
+// ============================================
+
+if ($action === 'delete') {
+    $stmt = $conn->prepare("DELETE FROM issues WHERE id = ?");
+    $stmt->bind_param("i", $issue_id);
+
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Issue deleted successfully']);
+    }
+    else {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Failed to delete issue']);
+    }
+    $stmt->close();
+    exit;
+}
+
+// ============================================
+// ACTION: UPDATE STATUS
+// ============================================
+
+// ============================================
+// ACTION: UPDATE STATUS
+// ============================================
+
 $status = trim($_POST['status'] ?? '');
-
-if (empty($issue_id) || empty($status)) {
-    $response['message'] = 'Issue ID and status are required';
-    http_response_code(400);
-    echo json_encode($response);
-    exit;
-}
-
 $valid_statuses = ['submitted', 'in_progress', 'resolved'];
+
+// Log debug info
+// file_put_contents(__DIR__ . '/../logs/status_debug.log', date('Y-m-d H:i:s') . " - Updating issue $issue_id to status: $status by user " . $_SESSION['user_id'] . "\n", FILE_APPEND);
+
 if (!in_array($status, $valid_statuses)) {
-    $response['message'] = 'Invalid status';
     http_response_code(400);
-    echo json_encode($response);
+    echo json_encode(['success' => false, 'message' => 'Invalid status']);
     exit;
 }
 
-// ============================================
-// UPDATE STATUS
-// ============================================
+// Check authorization (admins only for now)
+if (!isAdmin()) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Forbidden']);
+    exit;
+}
+
+// Handle Image Upload for "Resolved" status
+$resolved_image_path = null;
 
 if ($status === 'resolved') {
-    $stmt = $conn->prepare("UPDATE issues SET status = ?, resolved_at = NOW() WHERE id = ?");
-    $stmt->bind_param("si", $status, $issue_id);
-} else {
-    $stmt = $conn->prepare("UPDATE issues SET status = ? WHERE id = ?");
-    $stmt->bind_param("si", $status, $issue_id);
-}
-
-if (!$stmt) {
-    http_response_code(500);
-    logError('Prepare failed: ' . $conn->error);
-    $response['message'] = 'Database error';
-    echo json_encode($response);
-    exit;
-}
-
-if (!$stmt->execute()) {
-    http_response_code(500);
-    logError('Execute failed: ' . $stmt->error);
-    $stmt->close();
-    $response['message'] = 'Failed to update status';
-    echo json_encode($response);
-    exit;
-}
-
-if ($stmt->affected_rows === 0) {
-    $response['message'] = 'Issue not found';
-    http_response_code(404);
-    $stmt->close();
-    echo json_encode($response);
-    exit;
-}
-
-$stmt->close();
-// If resolved, generate PDF report automatically
-if ($status === 'resolved') {
-    // Fetch issue with user info
-    $q = $conn->prepare("SELECT i.*, u.name, u.email FROM issues i JOIN users u ON i.user_id = u.id WHERE i.id = ?");
-    if ($q) {
-        $q->bind_param('i', $issue_id);
-        $q->execute();
-        $res = $q->get_result();
-        $issue = $res->fetch_assoc();
-        $q->close();
-
-        if ($issue) {
-            if (!file_exists(REPORTS_DIR)) { mkdir(REPORTS_DIR, 0755, true); }
-
-            // Try to include FPDF
-            $fpdf_paths = [__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../fpdf/fpdf.php'];
-            $fpdf_available = false;
-            foreach ($fpdf_paths as $path) {
-                if (file_exists($path)) { require_once $path; $fpdf_available = true; break; }
+    // Check if new image provided
+    if ((!isset($_FILES['resolved_image']) || $_FILES['resolved_image']['error'] !== UPLOAD_ERR_OK) && (!isset($_FILES['resolution_image']) || $_FILES['resolution_image']['error'] !== UPLOAD_ERR_OK)) {
+        // If no new image, check if one already exists
+        $check = $conn->query("SELECT resolved_image_path, image_after FROM issues WHERE id = $issue_id");
+        $has_existing = false;
+        if ($check) {
+            $existing = $check->fetch_assoc();
+            if (!empty($existing['resolved_image_path']) || !empty($existing['image_after'])) {
+                $has_existing = true;
             }
+        }
 
-            if ($fpdf_available) {
-                try {
-                    $pdf = new FPDF();
-                    $pdf->AddPage();
-                    $pdf->SetFont('Arial', 'B', 16);
-                    $pdf->Cell(0, 10, 'Issue Report #' . $issue['id'], 0, 1, 'C');
-                    $pdf->SetFont('Arial', '', 11);
-                    $pdf->Ln(5);
+        if (!$has_existing) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Resolution image is required for resolved status']);
+            exit;
+        }
+    }
+    else {
+        // Process new Upload
+        $file = isset($_FILES['resolved_image']) ? $_FILES['resolved_image'] : $_FILES['resolution_image'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
 
-                    $pdf->SetFont('Arial', 'B', 12);
-                    $pdf->Cell(0, 8, 'Student Information', 0, 1);
-                    $pdf->SetFont('Arial', '', 11);
-                    $pdf->Cell(40, 7, 'Name:'); $pdf->Cell(0,7, $issue['name'], 0,1);
-                    $pdf->Cell(40, 7, 'Email:'); $pdf->Cell(0,7, $issue['email'], 0,1);
-                    $pdf->Ln(5);
+        if (!in_array($ext, $allowed)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid file type. Only JPG, PNG, WEBP allowed.']);
+            exit;
+        }
 
-                    $pdf->SetFont('Arial', 'B', 12);
-                    $pdf->Cell(0, 8, 'Issue Details', 0, 1);
-                    $pdf->SetFont('Arial', '', 11);
-                    $pdf->Cell(40, 7, 'Urgency:'); $pdf->Cell(0,7, ucfirst(str_replace('_',' ',$issue['urgency'])),0,1);
-                    $pdf->Cell(40, 7, 'Building:'); $pdf->Cell(0,7, $issue['building'],0,1);
-                    $pdf->Cell(40, 7, 'Floor:'); $pdf->Cell(0,7, $issue['floor'],0,1);
-                    $pdf->Cell(40, 7, 'Room:'); $pdf->Cell(0,7, $issue['room'],0,1);
-                    $pdf->Ln(5);
+        $uploadDir = __DIR__ . '/../uploads/resolutions/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
 
-                    $pdf->SetFont('Arial', 'B', 12);
-                    $pdf->Cell(0, 8, 'Timeline', 0, 1);
-                    $pdf->SetFont('Arial', '', 11);
-                    $pdf->Cell(40,7,'Submitted:'); $pdf->Cell(0,7, $issue['created_at'],0,1);
-                    if (!empty($issue['resolved_at'])) { $pdf->Cell(40,7,'Resolved:'); $pdf->Cell(0,7, $issue['resolved_at'],0,1); }
+        $filename = 'resolved_' . $issue_id . '_' . time() . '.' . $ext;
+        $targetPath = $uploadDir . $filename;
 
-                    $pdf_filename = 'issue_' . $issue['id'] . '_' . date('Y-m-d') . '.pdf';
-                    $pdf_path = REPORTS_DIR . $pdf_filename;
-                    $pdf->Output('F', $pdf_path);
-
-                    // Update DB report_path
-                    $u = $conn->prepare("UPDATE issues SET report_path = ? WHERE id = ?");
-                    if ($u) {
-                        $dbpath = 'reports/' . $pdf_filename;
-                        $u->bind_param('si', $dbpath, $issue_id);
-                        $u->execute();
-                        $u->close();
-                    }
-                } catch (Exception $e) {
-                    logError('Auto PDF generation failed: ' . $e->getMessage());
-                }
-            }
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            $resolved_image_path = 'uploads/resolutions/' . $filename;
+        }
+        else {
+            logError("Failed to upload resolution image for issue $issue_id");
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to upload resolution image']);
+            exit;
         }
     }
 }
 
-http_response_code(200);
-$response['success'] = true;
-$response['message'] = 'Status updated successfully';
-echo json_encode($response);
+// Execute Update Logic
+try {
+    if ($status === 'resolved') {
+        // Update to resolved
+        if ($resolved_image_path) {
+            // Update with image
+            // Try to detect column name safely
+            $colsRes = $conn->query("SHOW COLUMNS FROM issues");
+            $cols = [];
+            while ($c = $colsRes->fetch_assoc())
+                $cols[] = $c['Field'];
 
-$issue_id = intval($_POST['issue_id'] ?? 0);
-$status = trim($_POST['status'] ?? '');
-$action = trim($_POST['action'] ?? 'update'); // 'update' or 'delete'
+            if (in_array('resolved_image_path', $cols)) {
+                $stmt = $conn->prepare("UPDATE issues SET status = ?, resolved_at = NOW(), resolved_image_path = ? WHERE id = ?");
+                $stmt->bind_param("ssi", $status, $resolved_image_path, $issue_id);
+            }
+            elseif (in_array('image_after', $cols)) {
+                $stmt = $conn->prepare("UPDATE issues SET status = ?, resolved_at = NOW(), image_after = ? WHERE id = ?");
+                $stmt->bind_param("ssi", $status, $resolved_image_path, $issue_id);
+            }
+            else {
+                // No image column but file uploaded? Just update status
+                $stmt = $conn->prepare("UPDATE issues SET status = ?, resolved_at = NOW() WHERE id = ?");
+                $stmt->bind_param("si", $status, $issue_id);
+            }
+        }
+        else {
+            // Just status update (existing image check passed)
+            $stmt = $conn->prepare("UPDATE issues SET status = ?, resolved_at = NOW() WHERE id = ?");
+            $stmt->bind_param("si", $status, $issue_id);
+        }
+    }
+    else {
+        // Update to submitted/in_progress
+        // Explicitly set resolved_at to NULL if reverting? (Optional, skipping for simplicity)
+        $stmt = $conn->prepare("UPDATE issues SET status = ? WHERE id = ?");
+        $stmt->bind_param("si", $status, $issue_id);
+    }
 
-if ($issue_id <= 0) {
-    $response['message'] = 'Invalid issue ID';
-    echo json_encode($response);
-    exit;
-}
-
-if ($action === 'delete') {
-    // Delete issue
-    $stmt = $conn->prepare("DELETE FROM issues WHERE id = ?");
-    $stmt->bind_param("i", $issue_id);
-    
     if ($stmt->execute()) {
-        $response['success'] = true;
-        $response['message'] = 'Issue deleted successfully';
-    } else {
-        $response['message'] = 'Failed to delete issue';
-    }
-} else {
-    // Update status
-    if (!in_array($status, ['submitted', 'in_progress', 'resolved'])) {
-        $response['message'] = 'Invalid status';
-        echo json_encode($response);
-        exit;
-    }
-    
-    $stmt = $conn->prepare("UPDATE issues SET status = ? WHERE id = ?");
-    $stmt->bind_param("si", $status, $issue_id);
-    
-    if ($stmt->execute()) {
-        $response['success'] = true;
-        $response['message'] = 'Status updated successfully';
-    } else {
-        $response['message'] = 'Failed to update status';
-    }
-}
+        // Handle resolution notes separately if provided
+        if ($status === 'resolved' && isset($_POST['resolution_notes'])) {
+            $notes = trim($_POST['resolution_notes']);
+            if ($notes !== '') {
+                $colsRes = $conn->query("SHOW COLUMNS FROM issues");
+                $cols = [];
+                while ($c = $colsRes->fetch_assoc())
+                    $cols[] = $c['Field'];
 
-echo json_encode($response);
+                if (in_array('resolution_notes', $cols)) {
+                    $nstmt = $conn->prepare("UPDATE issues SET resolution_notes = ? WHERE id = ?");
+                    $nstmt->bind_param('si', $notes, $issue_id);
+                    $nstmt->execute();
+                    $nstmt->close();
+                }
+            }
+        }
+
+        echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
+    }
+    else {
+        throw new Exception($stmt->error);
+    }
+    $stmt->close();
+
+}
+catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+}
+?>

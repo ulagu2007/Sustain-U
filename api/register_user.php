@@ -31,19 +31,21 @@ $confirm_password = '';
 $department = '';
 $phone = '';
 
-if ($_SERVER['CONTENT_TYPE'] === 'application/json') {
-    $input = json_decode(file_get_contents('php://input'), true);
+if (!empty($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $name = trim($input['full_name'] ?? '');
     $email = trim($input['email'] ?? '');
-    $password = $input['password'] ?? '';
-    $confirm_password = $input['confirm_password'] ?? '';
+    // Sustain-U: Trim passwords to match frontend validation
+    $password = trim($input['password'] ?? '');
+    $confirm_password = trim($input['confirm_password'] ?? '');
     $department = trim($input['department'] ?? '');
     $phone = trim($input['phone'] ?? '');
-} else {
+}
+else {
     $name = trim($_POST['full_name'] ?? trim($_POST['name'] ?? ''));
     $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
+    $password = trim($_POST['password'] ?? '');
+    $confirm_password = trim($_POST['confirm_password'] ?? '');
     $department = trim($_POST['department'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
 }
@@ -88,6 +90,13 @@ if (strlen($password) < 8) {
     exit;
 }
 
+// Phone validation: exactly 10 digits, numbers only (optional field)
+if (!empty($phone) && !preg_match('/^[0-9]{10}$/', $phone)) {
+    $response['message'] = 'Phone number must be exactly 10 digits (numbers only).';
+    echo json_encode($response);
+    exit;
+}
+
 // ============================================
 // CHECK DUPLICATE EMAIL
 // ============================================
@@ -127,22 +136,25 @@ $check_stmt->close();
 $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 $role = 'student';
 
-$insert_stmt = $conn->prepare("INSERT INTO users (name, email, password, role, points) VALUES (?, ?, ?, ?, 0)");
+$insert_stmt = $conn->prepare("INSERT INTO users (name, email, password, role, points, department, section, phone) VALUES (?, ?, ?, ?, 0, ?, ?, ?)");
 if (!$insert_stmt) {
     http_response_code(500);
     logError('Prepare failed: ' . $conn->error);
+    $response['success'] = false;
     $response['message'] = 'Database error';
     echo json_encode($response);
     exit;
 }
 
-$insert_stmt->bind_param("ssss", $name, $email, $hashed_password, $role);
+$section = ''; // Default empty section
+$insert_stmt->bind_param("sssssss", $name, $email, $hashed_password, $role, $department, $section, $phone);
 
 if ($insert_stmt->execute()) {
     http_response_code(201);
     $response['success'] = true;
     $response['message'] = 'Registration successful. Redirecting to login...';
-} else {
+}
+else {
     http_response_code(500);
     logError('Insert failed: ' . $insert_stmt->error);
     $response['message'] = 'Registration failed. Please try again.';

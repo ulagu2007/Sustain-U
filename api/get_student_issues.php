@@ -48,8 +48,11 @@ $issues = [];
 
 function normalizeImagePath($p) {
     if (!$p) return '';
-    if (strpos($p, '/Sustain-U/') === 0 || strpos($p, 'uploads/') === 0) return $p;
-    return '/Sustain-U/uploads/' . ltrim($p, '/');
+    if (strpos($p, 'http') === 0) return $p;
+    $p = ltrim($p, '/');
+    $p = preg_replace('/^Sustain-U\//', '', $p);
+    if (strpos($p, 'uploads/') === 0) return $p;
+    return 'uploads/' . $p;
 }
 
 while ($row = $result->fetch_assoc()) {
@@ -68,9 +71,17 @@ while ($row = $result->fetch_assoc()) {
 
     $image = $row['image_path'] ?? $row['image_before'] ?? $row['image'] ?? '';
 
+    // Prefer explicit category, but avoid returning generic 'general' if more specific info exists
+    $cat = $row['category'] ?? ($row['type'] ?? 'unspecified');
+    if ($cat && strtolower($cat) === 'general') {
+        if (!empty($row['type'])) $cat = $row['type'];
+        elseif (!empty($row['custom_description'])) $cat = $row['custom_description'];
+        else $cat = 'other';
+    }
+
     $issues[] = [
         'id' => $row['id'],
-        'category' => $row['category'] ?? ($row['type'] ?? 'unspecified'),
+        'category' => $cat,
         'description' => $description,
         'location' => $location,
         'building' => $row['building'] ?? null,
@@ -78,6 +89,7 @@ while ($row = $result->fetch_assoc()) {
         'room' => $row['room'] ?? null,
         'urgency' => $row['urgency'] ?? null,
         'image_path' => normalizeImagePath($image),
+        'resolved_image' => normalizeImagePath($row['resolved_image_path'] ?? $row['image_after'] ?? ''),
         'status' => $row['status'] ?? 'submitted',
         'created_at' => $row['created_at'] ?? null,
         'resolved_at' => $row['resolved_at'] ?? null,

@@ -9,7 +9,11 @@
 require_once __DIR__ . '/../config.php';
 
 // Create connection
+// Create connection with persistent support for production stability
+mysqli_report(MYSQLI_REPORT_OFF); 
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+$conn->set_charset(DB_CHARSET);
+ // Removed persistent connection prefix 'p:' for stability
 
 // Check connection
 if ($conn->connect_error) {
@@ -37,4 +41,3 @@ if (!$conn->set_charset(DB_CHARSET)) {
 
 // Enable strict mode for better error handling
 $conn->query("SET sql_mode='STRICT_TRANS_TABLES'");
-
