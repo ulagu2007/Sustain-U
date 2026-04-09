@@ -1,5 +1,0 @@
-﻿Tables_in_sustain_u
-issues
-otp_verification
-reported_issues
-users
