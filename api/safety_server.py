@@ -9,6 +9,7 @@ from ultralytics import YOLO
 import onnxruntime as ort
 import io
 import cv2
+import easyocr
 
 app = Flask(__name__)
 CORS(app)
@@ -48,6 +49,15 @@ except Exception as e:
     model = None
     sessions = {}
 
+# Initialize EasyOCR Reader
+try:
+    logger.info("Initializing EasyOCR Reader...")
+    reader = easyocr.Reader(['en'], gpu=False)  # CPU default to align with YOLO/ONNX
+    logger.info("EasyOCR initialized.")
+except Exception as e:
+    logger.error(f"Failed to initialize EasyOCR: {e}")
+    reader = None
+
 @app.route('/audit', methods=['POST'])
 def audit_image():
     if 'image' not in request.files:
@@ -76,6 +86,28 @@ def audit_image():
         # Logging for transparency
         logger.info(f"YOLO Audit: {len(detections)} detections found.")
         
+        # --- OCR Text Detection Logic (Screenshot/Code Prevention) ---
+        ocr_text_found = []
+        if reader is not None:
+            try:
+                # Decode image for EasyOCR
+                img_cv = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+                ocr_results = reader.readtext(img_cv)
+                for (bbox, text, prob) in ocr_results:
+                    if prob > 0.5:
+                        logger.info(f" - Found text: '{text}' (conf: {prob:.2f})")
+                        ocr_text_found.append(text)
+                
+                # If too much text is found, reject the image (likely a screenshot of code or notes)
+                if len(ocr_text_found) >= 3 or any(len(t) > 15 for t in ocr_text_found):
+                    return jsonify({
+                        'status': 'REJECTED',
+                        'reason': 'Image appears to be a document or screenshot containing text. Please upload a real environmental photo.',
+                        'detections': detections
+                    })
+            except Exception as e:
+                logger.error(f"OCR Error: {e}")
+
         # --- ONNX Classification Logic ---
         prediction = None
         confidence = 0.0

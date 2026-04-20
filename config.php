@@ -1,4 +1,5 @@
 <?php
+header('Content-Type: text/html; charset=UTF-8');
 /**
  * ============================================
  * SUSTAIN-U CONFIGURATION
@@ -21,6 +22,16 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'sustain_u');
 define('DB_CHARSET', 'utf8mb4');
+
+// ============================================
+// SMTP CONFIGURATION (Mailing)
+// ============================================
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_USER', 'sustainu.environment@gmail.com');
+define('SMTP_PASS', 'wjpctxittbftmggt'); // App Password
+define('SMTP_PORT', 587);
+define('SMTP_FROM_EMAIL', 'sustainu.environment@gmail.com');
+define('SMTP_FROM_NAME', 'Sustain-U Security');
 
 
 // ============================================
@@ -58,7 +69,10 @@ if (session_status() === PHP_SESSION_NONE) {
     // Set a writable session save path (required on IIS/Windows)
     $session_dir = __DIR__ . '/sessions';
     if (!is_dir($session_dir)) {
-        mkdir($session_dir, 0755, true);
+        @mkdir($session_dir, 0700, true);
+    }
+    if (!is_writable($session_dir)) {
+        $session_dir = sys_get_temp_dir();
     }
     session_save_path($session_dir);
 

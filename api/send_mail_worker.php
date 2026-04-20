@@ -31,16 +31,16 @@ $mail = new PHPMailer(true);
 
 try {
     $mail->isSMTP();
-    $mail->Host       = 'smtp.gmail.com'; 
+    $mail->Host       = SMTP_HOST; 
     $mail->SMTPAuth   = true;
-    $mail->Username   = 'sustainu.environment@gmail.com'; 
-    $mail->Password   = 'wjpctxittbftmggt'; 
+    $mail->Username   = SMTP_USER; 
+    $mail->Password   = SMTP_PASS; 
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port       = 587;
+    $mail->Port       = SMTP_PORT;
     $mail->SMTPDebug  = 0;
     $mail->Timeout    = 20;
 
-    $mail->setFrom('sustainu.environment@gmail.com', 'Sustain-U Security');
+    $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
     $mail->addAddress($email);
 
     $mail->isHTML(true);
