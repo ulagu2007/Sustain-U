@@ -39,8 +39,8 @@ if ($new_password !== $confirm_password) {
     exit;
 }
 
-if (strlen($new_password) < 4) {
-    $response['message'] = 'Password must be at least 4 characters long.';
+if (strlen($new_password) < 6) {
+    $response['message'] = 'Password must be at least 6 characters long.';
     echo json_encode($response);
     exit;
 }

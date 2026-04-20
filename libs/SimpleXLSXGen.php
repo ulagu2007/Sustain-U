@@ -125,9 +125,9 @@ class SimpleXLSXGen
 
         // https://c-rex.net/projects/samples/ooxml/e1/Part4/OOXML_P4_DOCX_numFmts_topic_ID0E6KK6.html
         $this->NF = [
-            self::N_RUB => '#,##0.00\ "₽"',
+            self::N_RUB => '#,##0.00\ "â‚½"',
             self::N_DOLLAR => '[$$-1]#,##0.00',
-            self::N_EURO => '#,##0.00\ [$€-1]'
+            self::N_EURO => '#,##0.00\ [$â‚¬-1]'
         ];
         $this->NF_KEYS = array_flip($this->NF);
 
@@ -959,13 +959,13 @@ class SimpleXLSXGen
                             } elseif (preg_match('/^\$[-+]?[0-9\.]+$/', $v)) { // currency $?
                                 $N = self::N_DOLLAR;
                                 $cv = ltrim($v, '+$');
-                            } elseif (preg_match('/^[-+]?[0-9\.]+( ₽| €)$/u', $v, $m)) { // currency ₽ €?
-                                if ($m[1] === ' ₽') {
+                            } elseif (preg_match('/^[-+]?[0-9\.]+( â‚½| â‚¬)$/u', $v, $m)) { // currency â‚½ â‚¬?
+                                if ($m[1] === ' â‚½') {
                                     $N = self::N_RUB;
-                                } elseif ($m[1] === ' €') {
+                                } elseif ($m[1] === ' â‚¬') {
                                     $N = self::N_EURO;
                                 }
-                                $cv = trim($v, ' +₽€');
+                                $cv = trim($v, ' +â‚½â‚¬');
                             } elseif (preg_match('/^([-+]?\d+)%$/', $v, $m)) {
                                 $cv = round($m[1] / 100, 2, PHP_ROUND_HALF_UP);
                                 $N = self::N_PERCENT_INT; // [9] 0%

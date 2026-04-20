@@ -60,8 +60,8 @@ abstract class PageBoundaries
     /**
      * ArtBox
      *
-     * The art box defines the extent of the page’s meaningful content (including potential white space) as intended
-     * by the page’s creator.
+     * The art box defines the extent of the pageâ€™s meaningful content (including potential white space) as intended
+     * by the pageâ€™s creator.
      *
      * @see PDF 32000-1:2008 - 14.11.2 Page Boundaries
      * @var string

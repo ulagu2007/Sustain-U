@@ -204,9 +204,11 @@ requireAdmin();
                     </div>
                     ${issue.image_path ? `<img src="${escapeHtml(issue.image_path)}" alt="Issue image" class="issue-image">` : ''}
                     ${issue.resolved_image ? `<div style="margin-top:0.5rem;"><small style="display:block;color:#4CAF50;font-weight:600;">Resolved Image</small><img src="${escapeHtml(issue.resolved_image)}" alt="Resolved image" class="issue-image"></div>` : ''}
-                    <div class="admin-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <div class="admin-actions" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                         <a href="issue_details.php?id=${issue.id}" class="btn btn-small btn-secondary">View Details</a>
+                        ${issue.status !== 'resolved' ? `<button onclick="openStatusModal(${issue.id}, '${issue.status}')" class="btn btn-small btn-primary" style="font-size: 0.75rem;">Update Status</button>` : ''}
                         ${issue.status === 'resolved' ? `<a href="api/generate_pdf.php?id=${issue.id}" class="btn btn-small btn-primary" style="font-size: 0.75rem;">Download Report</a>` : ''}
+                        <button onclick="deleteIssue(${issue.id})" class="btn btn-small" style="font-size:0.75rem;color:#c0392b;border-color:#c0392b;">Delete</button>
                     </div>
                 `;
                 issuesList.appendChild(card);
@@ -215,7 +217,7 @@ requireAdmin();
 
         function openStatusModal(issueId, currentStatus) {
             document.getElementById('issueId').value = issueId;
-            document.getElementById('resolvedImage').value = ''; // Clear previous file
+            document.getElementById('resolutionImage').value = ''; // Clear previous file
             document.getElementById('newStatus').value = currentStatus || 'submitted'; // Default to current status
             toggleResolutionImage();
             document.getElementById('statusModal').style.display = 'flex';

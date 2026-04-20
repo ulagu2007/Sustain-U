@@ -98,11 +98,14 @@ if ($status === 'resolved') {
     // Check if new image provided
     if ((!isset($_FILES['resolved_image']) || $_FILES['resolved_image']['error'] !== UPLOAD_ERR_OK) && (!isset($_FILES['resolution_image']) || $_FILES['resolution_image']['error'] !== UPLOAD_ERR_OK)) {
         // If no new image, check if one already exists
-        $check = $conn->query("SELECT resolved_image_path, image_after FROM issues WHERE id = $issue_id");
+        $check_stmt = $conn->prepare("SELECT resolved_image_path FROM issues WHERE id = ?");
+        $check_stmt->bind_param("i", $issue_id);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
         $has_existing = false;
-        if ($check) {
-            $existing = $check->fetch_assoc();
-            if (!empty($existing['resolved_image_path']) || !empty($existing['image_after'])) {
+        if ($check_result) {
+            $existing = $check_result->fetch_assoc();
+            if (!empty($existing['resolved_image_path'])) {
                 $has_existing = true;
             }
         }
@@ -161,10 +164,7 @@ try {
                 $stmt = $conn->prepare("UPDATE issues SET status = ?, resolved_at = NOW(), resolved_image_path = ? WHERE id = ?");
                 $stmt->bind_param("ssi", $status, $resolved_image_path, $issue_id);
             }
-            elseif (in_array('image_after', $cols)) {
-                $stmt = $conn->prepare("UPDATE issues SET status = ?, resolved_at = NOW(), image_after = ? WHERE id = ?");
-                $stmt->bind_param("ssi", $status, $resolved_image_path, $issue_id);
-            }
+
             else {
                 // No image column but file uploaded? Just update status
                 $stmt = $conn->prepare("UPDATE issues SET status = ?, resolved_at = NOW() WHERE id = ?");
@@ -189,17 +189,10 @@ try {
         if ($status === 'resolved' && isset($_POST['resolution_notes'])) {
             $notes = trim($_POST['resolution_notes']);
             if ($notes !== '') {
-                $colsRes = $conn->query("SHOW COLUMNS FROM issues");
-                $cols = [];
-                while ($c = $colsRes->fetch_assoc())
-                    $cols[] = $c['Field'];
-
-                if (in_array('resolution_notes', $cols)) {
-                    $nstmt = $conn->prepare("UPDATE issues SET resolution_notes = ? WHERE id = ?");
-                    $nstmt->bind_param('si', $notes, $issue_id);
-                    $nstmt->execute();
-                    $nstmt->close();
-                }
+                $nstmt = $conn->prepare("UPDATE issues SET resolution_notes = ? WHERE id = ?");
+                $nstmt->bind_param('si', $notes, $issue_id);
+                $nstmt->execute();
+                $nstmt->close();
             }
         }
 

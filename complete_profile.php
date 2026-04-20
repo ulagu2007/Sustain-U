@@ -4,7 +4,6 @@
  * Mandatory for first-time login
  */
 require_once 'config.php';
-ini_set('display_errors', 1);
 error_reporting(E_ALL);
 require_once 'api/db.php';
 
@@ -17,6 +16,12 @@ if (!isLoggedIn()) {
 // Ensure user is a student (Admin doesn't need this flow usually, or maybe they do? user said "Students")
 if (!isStudent()) {
     header('Location: admin_dashboard.php');
+    exit;
+}
+
+// Redirect if profile is already complete — avoids loop
+if (check_profile_completion($conn, $_SESSION['user_id'])) {
+    header('Location: index.php');
     exit;
 }
 

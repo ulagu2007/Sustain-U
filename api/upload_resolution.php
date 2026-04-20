@@ -38,14 +38,14 @@ if (empty($issue_id)) {
     exit;
 }
 
-if (!isset($_FILES['image_after']) || $_FILES['image_after']['error'] !== UPLOAD_ERR_OK) {
+if (!isset($_FILES['resolved_image']) || $_FILES['resolved_image']['error'] !== UPLOAD_ERR_OK) {
     $response['message'] = 'Image upload failed';
     http_response_code(400);
     echo json_encode($response);
     exit;
 }
 
-$file = $_FILES['image_after'];
+$file = $_FILES['resolved_image'];
 
 // Validate file size and type
 if ($file['size'] > MAX_UPLOAD_SIZE) {
@@ -107,15 +107,7 @@ if (in_array('resolved_image_path', $cols)) {
     }
 }
 
-if (!$updated && in_array('image_after', $cols)) {
-    $stmt = $conn->prepare("UPDATE issues SET image_after = ? WHERE id = ?");
-    if ($stmt) {
-        $stmt->bind_param("si", $filename, $issue_id);
-        $stmt->execute();
-        $stmt->close();
-        $updated = true;
-    }
-}
+
 
 if (!$updated) {
     // If neither column exists, still return success (file saved) but warn in logs

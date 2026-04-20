@@ -95,7 +95,12 @@ try {
     $response['message'] = 'OTP sent to your email. Please verify.';
     echo json_encode($response);
 } catch (Exception $e) {
-    $conn->query("DELETE FROM otp_verification WHERE email = '$email' AND otp = '$otp'");
+    $del_stmt = $conn->prepare("DELETE FROM otp_verification WHERE email = ? AND otp = ?");
+    if ($del_stmt) {
+        $del_stmt->bind_param("ss", $email, $otp);
+        $del_stmt->execute();
+        $del_stmt->close();
+    }
     $response['message'] = 'Failed to send OTP. Please try again later.';
     error_log("Forgot Password PHPMailer Error: {$mail->ErrorInfo}");
     echo json_encode($response);

@@ -38,7 +38,13 @@ if (!function_exists('isAdmin') || !isAdmin()) {
 try {
     // 7. PDF + EXCEL GENERATION STABILITY (Extension Validation)
     if (!extension_loaded('zip')) {
-        throw new Exception("Missing dependency: 'zip' PHP extension is required for Excel generation.");
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Excel export requires the PHP zip extension. Please ask the server admin to enable php_zip in php.ini and restart Apache.'
+        ]);
+        exit;
     }
     
     // 1. Get Filters

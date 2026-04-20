@@ -162,7 +162,7 @@ if (isLoggedIn()) {
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required placeholder="Minimum 4 characters">
+                    <input type="password" id="password" name="password" required placeholder="Minimum 6 characters">
                     <small class="error-message" id="passwordError"></small>
                 </div>
 
@@ -257,7 +257,7 @@ if (isLoggedIn()) {
                 }
 
                 if (!validatePassword(password)) {
-                    document.getElementById('passwordError').textContent = 'Password must be at least 4 characters';
+                    document.getElementById('passwordError').textContent = 'Password must be at least 6 characters';
                     hasErrors = true;
                 }
 

@@ -128,23 +128,26 @@ try {
         @unlink($filepath);
     }
 
-    // Fallback if everything fails
+    // Fallback: AI server is offline — hard reject
     ob_clean();
     echo json_encode([
-        'status' => 'APPROVED', 
-        'reason' => 'AI Scan Bypassed: Safety module offline.',
-        'source' => 'emergency_bypass'
+        'status' => 'REJECTED',
+        'reason' => 'The Sustainability Safety module is offline. Please try again later or contact the administrator.',
+        'source' => 'offline_fallback'
     ]);
 
 } catch (Throwable $e) {
     if (ob_get_length()) ob_clean();
-    @unlink($filepath);
-    
+    if (isset($filepath) && file_exists($filepath)) {
+        @unlink($filepath);
+    }
     echo json_encode([
-        'status' => 'ERROR',
-        'reason' => 'Internal server error: ' . $e->getMessage(),
-        'source' => 'global_exception_handler'
+        'status' => 'REJECTED',
+        'reason' => 'The Sustainability Safety module is unavailable. Please try again later.',
+        'source' => 'exception_fallback'
     ]);
+    ob_end_flush();
+    exit;
 }
 
 ob_end_flush();

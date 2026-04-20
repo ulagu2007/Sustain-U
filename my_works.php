@@ -40,7 +40,7 @@ if (empty($_SESSION['profile_complete'])) {
                 <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
                     <select id="statusFilter" style="flex: 1; min-width: 150px;">
                         <option value="">All Status</option>
-                        <option value="submitted">📝 Submitted</option>
+                        <option value="submitted">📍 Submitted</option>
                         <option value="in_progress">⏳ In Progress</option>
                         <option value="resolved">✓ Resolved</option>
                     </select>
@@ -161,8 +161,8 @@ if (empty($_SESSION['profile_complete'])) {
 
                     <div style="display: flex; gap: 2rem; flex-wrap: wrap; font-size: 0.9rem; color: #666;">
                         <div>📍 ${sanitize(issue.location)}</div>
-                        <div>⚠️ ${issue.urgency.toUpperCase()}</div>
-                        <div>📅 ${issue.status === 'resolved' ? 'Resolved' : 'In Progress'}</div>
+                        <div>⚠️  ${issue.urgency.toUpperCase()}</div>
+                        <div>📅 ${issue.status === "resolved" ? "Resolved" : "In Progress"}</div>
                     </div>
 
                     ${issue.image_path ? `
@@ -189,8 +189,8 @@ if (empty($_SESSION['profile_complete'])) {
 
         function getStatusBadge(status) {
             const badges = {
-                'submitted': '<span class="badge badge-info">📝 Submitted</span>',
-                'in_progress': '<span class="badge badge-warning">⏳ In Progress</span>',
+                "submitted": "<span class=\"badge badge-info\">📍 Submitted</span>",
+                "in_progress": "<span class=\"badge badge-warning\">⏳ In Progress</span>",
                 'resolved': '<span class="badge badge-success">✓ Resolved</span>'
             };
             return badges[status] || '<span class="badge badge-secondary">Unknown</span>';
@@ -198,9 +198,9 @@ if (empty($_SESSION['profile_complete'])) {
 
         function getUrgencyBadge(urgency) {
             const badges = {
-                'can_wait': '<span class="badge badge-success">🟢 Can Wait</span>',
-                'needs_attention': '<span class="badge badge-warning">🟡 Needs Attention</span>',
-                'emergency': '<span class="badge badge-danger">🔴 Emergency</span>'
+                "can_wait": "<span class=\"badge badge-success\">🟢 Can Wait</span>",
+                "needs_attention": "<span class=\"badge badge-warning\">🟡 Needs Attention</span>",
+                "emergency": "<span class=\"badge badge-danger\">🔴 Emergency</span>"
             };
             return badges[urgency] || `<span class="badge badge-secondary">${urgency}</span>`;
         }

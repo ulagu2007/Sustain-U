@@ -1,10 +1,7 @@
 <?php
 /**
- * ============================================
  * GET ALL ISSUES API (ADMIN ONLY)
- * ============================================
  */
-
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/db.php';
 
@@ -24,40 +21,41 @@ if (!isAdmin()) {
 
 header('Content-Type: application/json');
 
-$status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
+$status_filter   = isset($_GET['status'])   ? trim($_GET['status'])   : '';
 $category_filter = isset($_GET['category']) ? trim($_GET['category']) : '';
 
-// Build query
 $query = "
-    SELECT i.id, u.name, u.email, i.category, i.urgency, i.building, i.floor, i.area, 
-           i.image_before, i.image_after, i.status, i.created_at, i.resolved_at, i.report_path
+    SELECT i.id, u.name, u.email, i.category, i.type, i.urgency,
+           i.building, i.floor, i.room,
+           i.image_path, i.resolved_image_path,
+           i.description, i.custom_description,
+           i.status, i.created_at, i.resolved_at, i.report_path
     FROM issues i
     JOIN users u ON i.user_id = u.id
     WHERE 1=1
 ";
 
 $params = [];
-$types = '';
+$types  = '';
 
 if (!empty($status_filter)) {
-    $query .= " AND i.status = ?";
+    $query   .= " AND i.status = ?";
     $params[] = $status_filter;
-    $types .= 's';
+    $types   .= 's';
 }
 
 if (!empty($category_filter)) {
-    $query .= " AND i.category = ?";
+    $query   .= " AND i.category = ?";
     $params[] = $category_filter;
-    $types .= 's';
+    $types   .= 's';
 }
 
-$query .= " ORDER BY i.created_at DESC";
+$query .= " ORDER BY FIELD(i.urgency,'emergency','needs_attention','can_wait'), i.created_at DESC";
 
 $stmt = $conn->prepare($query);
-
 if (!$stmt) {
     http_response_code(500);
-    logError('Prepare failed: ' . $conn->error);
+    logError('get_all_issues prepare failed: ' . $conn->error);
     echo json_encode(['success' => false, 'message' => 'Database error']);
     exit;
 }
@@ -68,7 +66,7 @@ if (!empty($params)) {
 
 if (!$stmt->execute()) {
     http_response_code(500);
-    logError('Execute failed: ' . $stmt->error);
+    logError('get_all_issues execute failed: ' . $stmt->error);
     $stmt->close();
     echo json_encode(['success' => false, 'message' => 'Database error']);
     exit;
@@ -77,20 +75,47 @@ if (!$stmt->execute()) {
 $result = $stmt->get_result();
 $issues = [];
 
+function normalizeImagePath($p) {
+    if (!$p) return '';
+    if (strpos($p, 'http') === 0) return $p;
+    $p = ltrim($p, '/');
+    $p = preg_replace('/^Sustain-U\//', '', $p);
+    if (strpos($p, 'uploads/') === 0) return $p;
+    return 'uploads/' . $p;
+}
+
 while ($row = $result->fetch_assoc()) {
+    $parts    = array_filter([$row['building'] ?? '', $row['floor'] ?? '', $row['room'] ?? '']);
+    $location = implode(', ', $parts) ?: 'Unspecified';
+    $desc     = $row['description'] ?? $row['custom_description'] ?? '';
+
     $issues[] = [
-        'id' => $row['id'],
-        'student_name' => $row['name'],
+        'id'            => $row['id'],
+        'name'          => $row['name'],
+        'student_name'  => $row['name'],
         'student_email' => $row['email'],
-        'category' => $row['category'],
-        'urgency' => $row['urgency'],
-        'building' => $row['building'],
-        'floor' => $row['floor'],
-        'area' => $row['area'],
-        'image_before' => normalizeImagePath($row['image_before'] ?? $row['image_path'] ?? ''),
-        'resolved_image' => normalizeImagePath($row['resolved_image_path'] ?? $row['image_after'] ?? ''),
+        'email'         => $row['email'],
+        'category'      => $row['category'],
+        'urgency'       => $row['urgency'],
+        'building'      => $row['building'],
+        'floor'         => $row['floor'],
+        'room'          => $row['room'],
+        'location'      => $location,
+        'description'   => $desc,
+        'image_path'    => normalizeImagePath($row['image_path'] ?? ''),
+        'resolved_image'=> normalizeImagePath($row['resolved_image_path'] ?? ''),
+        'status'        => $row['status'],
+        'created_at'    => $row['created_at'],
+        'resolved_at'   => $row['resolved_at'],
+        'report_path'   => $row['report_path'],
+    ];
+}
+
+$stmt->close();
+
 echo json_encode([
     'success' => true,
-    'issues' => $issues,
-    'total' => count($issues)
+    'issues'  => $issues,
+    'data'    => $issues,
+    'total'   => count($issues),
 ]);

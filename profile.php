@@ -33,7 +33,7 @@ if (empty($_SESSION['profile_complete'])) {
         <div class="card" style="background: linear-gradient(135deg, var(--primary-color) 0%, #1d6b47 100%); color: white;">
             <div style="text-align: center; padding: 2rem;">
                 <div style="width: 80px; height: 80px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(255, 255, 255, 0.3); display: flex; align-items: center; justify-content: center; font-size: 2.5rem;">
-                    👤
+                    ðŸ‘¤
                 </div>
                 <h2 id="userName" style="margin: 0 0 0.5rem; color: white;">Loading...</h2>
                 <p id="userEmail" style="margin: 0; opacity: 0.9;">Loading...</p>
@@ -49,7 +49,7 @@ if (empty($_SESSION['profile_complete'])) {
             </div>
 
             <div class="card" style="text-align: center;">
-                <div style="font-size: 1.5rem;">📝</div>
+                <div style="font-size: 1.5rem;">ðŸ“</div>
                 <div id="totalIssues" style="font-size: 2rem; color: var(--primary-color); font-weight: bold; margin: 0.5rem 0;">0</div>
                 <small>Issues Reported</small>
             </div>
@@ -188,11 +188,11 @@ if (empty($_SESSION['profile_complete'])) {
         function loadAchievements(user) {
             const achievements = [];
 
-            if (user.total_issues >= 1) achievements.push({ icon: '📝', name: 'Reporter', desc: '1 issue' });
-            if (user.total_issues >= 5) achievements.push({ icon: '🌟', name: 'Active Contributor', desc: '5 issues' });
+            if (user.total_issues >= 1) achievements.push({ icon: 'ðŸ“', name: 'Reporter', desc: '1 issue' });
+            if (user.total_issues >= 5) achievements.push({ icon: 'ðŸŒŸ', name: 'Active Contributor', desc: '5 issues' });
             if (user.resolved_issues >= 1) achievements.push({ icon: '✓', name: 'Problem Solver', desc: '1 resolved' });
-            if (user.points >= 50) achievements.push({ icon: '🏆', name: 'Point Collector', desc: '50 points' });
-            if (user.points >= 100) achievements.push({ icon: '👑', name: 'Sustain-U Champion', desc: '100 points' });
+            if (user.points >= 50) achievements.push({ icon: 'ðŸ†', name: 'Point Collector', desc: '50 points' });
+            if (user.points >= 100) achievements.push({ icon: 'ðŸ‘‘', name: 'Sustain-U Champion', desc: '100 points' });
 
             const list = document.getElementById('achievementsList');
             if (achievements.length === 0) {
@@ -230,8 +230,8 @@ if (empty($_SESSION['profile_complete'])) {
                     return;
                 }
 
-                if (newPassword.length < 8) {
-                    messageDiv.textContent = 'New password must be at least 8 characters';
+                if (newPassword.length < 6) {
+                    messageDiv.textContent = 'New password must be at least 6 characters';
                     messageDiv.classList.remove('hidden');
                     return;
                 }

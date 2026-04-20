@@ -1,4 +1,4 @@
-en u <?php
+<?php
 /**
  * SUSTAIN-U - PDF REPORT GENERATOR
  */

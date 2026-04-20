@@ -349,7 +349,7 @@ if (!check_profile_completion($conn, $_SESSION['user_id'])) {
                         <div class="review-summary" style="display: flex; flex-direction: column; gap: 1rem;">
                             <div class="summary-item" style="background: #f5f5f5; padding: 1rem; border-radius: 8px;">
                                 <p style="margin: 0; font-size: 0.9rem; color: #666;">Category & Type</p>
-                                <h4 style="margin: 0.5rem 0 0; font-size: 1.1rem;" id="summaryCategory">Water – Stagnation</h4>
+                                <h4 style="margin: 0.5rem 0 0; font-size: 1.1rem;" id="summaryCategory">Water — Stagnation</h4>
                             </div>
 
                             <div class="summary-item" style="background: #f5f5f5; padding: 1rem; border-radius: 8px;">
@@ -694,7 +694,7 @@ if (!check_profile_completion($conn, $_SESSION['user_id'])) {
                     const aiStatus = document.getElementById('aiFeedback');
                     if (aiStatus) {
                         aiStatus.innerHTML = '⚠️ Category changed. Re-verifying image...';
-                        aiStatus.style.color = '#777';
+                        aiStatus.innerHTML = '⚠️ Category changed. Re-verifying image...';
                     }
 
                     // Automatically re-run AI audit if an image is already selected
@@ -905,7 +905,7 @@ if (!check_profile_completion($conn, $_SESSION['user_id'])) {
                 
                 const summaryCat = document.getElementById('summaryCategory');
                 if (summaryCat) {
-                    summaryCat.textContent = typeText ? `${categoryText} – ${typeText}` : categoryText;
+                    summaryCat.textContent = typeText ? `${categoryText} — ${typeText}` : categoryText;
                 }
 
                 const urgencyLabels = {

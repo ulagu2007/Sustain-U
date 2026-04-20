@@ -30,7 +30,7 @@ if (!$issue_id) {
         </div>
 
         <div id="issueContent" style="display: none;">
-            <button onclick="history.back()" class="btn btn-secondary" style="margin-bottom: 1.5rem;">← Back</button>
+            <button onclick="history.back()" class="btn btn-secondary" style="margin-bottom: 1.5rem;">⬅️ Back</button>
 
             <div class="card">
                 <div class="card-header">
@@ -183,7 +183,7 @@ if (!$issue_id) {
 
             // Set details
             document.getElementById('issueCategory').textContent = catLabel;
-            document.getElementById('issueUrgency').textContent = '⚠️ ' + issue.urgency.toUpperCase();
+            document.getElementById('issueUrgency').textContent = '⚠️ ' + issue.urgency.toUpperCase();
             document.getElementById('issueLocation').textContent = sanitize(issue.location);
             document.getElementById('issueStatus').textContent = issue.status.toUpperCase();
             document.getElementById('issueDescription').textContent = sanitize(issue.description);
@@ -241,8 +241,8 @@ if (!$issue_id) {
 
         function getStatusBadge(status) {
             const badges = {
-                'submitted': '<span class="badge badge-warning">📝 Submitted</span>',
-                'in_progress': '<span class="badge badge-info">⏳ In Progress</span>',
+                "submitted": "<span class=\"badge badge-warning\">📍 Submitted</span>",
+                "in_progress": "<span class=\"badge badge-info\">⏳ In Progress</span>",
                 'resolved': '<span class="badge badge-success">✓ Resolved</span>'
             };
             return badges[status] || '<span class="badge badge-secondary">Unknown</span>';
@@ -250,9 +250,9 @@ if (!$issue_id) {
 
         function getUrgencyBadge(urgency) {
             const badges = {
-                'can_wait': '<span class="badge badge-success">🟢 Can Wait</span>',
-                'needs_attention': '<span class="badge badge-warning">🟡 Needs Attention</span>',
-                'emergency': '<span class="badge badge-danger">🔴 Emergency</span>'
+                "can_wait": "<span class=\"badge badge-success\">🟢 Can Wait</span>",
+                "needs_attention": "<span class=\"badge badge-warning\">🟡 Needs Attention</span>",
+                "emergency": "<span class=\"badge badge-danger\">🔴 Emergency</span>",
             };
             return badges[urgency] || '';
         }

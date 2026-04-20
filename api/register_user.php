@@ -84,8 +84,8 @@ if ($password !== $confirm_password) {
     exit;
 }
 
-if (strlen($password) < 8) {
-    $response['message'] = 'Password must be at least 8 characters';
+if (strlen($password) < 6) {
+    $response['message'] = 'Password must be at least 6 characters';
     echo json_encode($response);
     exit;
 }

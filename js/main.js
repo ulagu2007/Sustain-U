@@ -64,8 +64,8 @@ function validateEmail(email) {
 
 // Password validation
 function validatePassword(password) {
-    // Relaxed validation: Just check length >= 4
-    return password && password.length >= 4;
+    // Relaxed validation: Just check length >= 6
+    return password && password.length >= 6;
 }
 // Sustain-U: 4-step wizard behaviour
 // DOMContentLoaded event listener for general page initialization (if needed)
